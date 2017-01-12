@@ -6947,8 +6947,9 @@ static void test_token_security_descriptor(void)
     BOOL defaulted, present, ret;
     ACCESS_ALLOWED_ACE *ace;
     SECURITY_ATTRIBUTES sa;
-    HANDLE token, token2;
-    DWORD size;
+    HANDLE token, token2, token3;
+    DWORD size, index;
+    BOOL found;
     PSID psid;
 
     if (!pDuplicateTokenEx || !pConvertStringSidToSidA || !pAddAccessAllowedAceEx || !pGetAce
@@ -7011,8 +7012,48 @@ static void test_token_security_descriptor(void)
 
     HeapFree(GetProcessHeap(), 0, sd2);
 
+    /* Duplicate token without security attributes.
+     * Tokens do not inherit the security descriptor when calling DuplicateToken,
+     * see https://blogs.msdn.microsoft.com/oldnewthing/20160512-00/?p=93447
+     */
+    ret = pDuplicateTokenEx(token2, MAXIMUM_ALLOWED, NULL, SecurityImpersonation, TokenImpersonation, &token3);
+    ok(ret, "DuplicateTokenEx failed with %u\n", GetLastError());
+
+    ret = GetKernelObjectSecurity(token3, DACL_SECURITY_INFORMATION, NULL, 0, &size);
+    ok(!ret && GetLastError() == ERROR_INSUFFICIENT_BUFFER,
+       "GetKernelObjectSecurity failed with %u\n", GetLastError());
+
+    sd2 = HeapAlloc(GetProcessHeap(), 0, size);
+    ret = GetKernelObjectSecurity(token3, DACL_SECURITY_INFORMATION, sd2, size, &size);
+    ok(ret, "GetKernelObjectSecurity failed %u\n", GetLastError());
+
+    acl2 = (void *)0xdeadbeef;
+    present = FALSE;
+    defaulted = TRUE;
+    ret = GetSecurityDescriptorDacl(sd2, &present, &acl2, &defaulted);
+    ok(ret, "GetSecurityDescriptorDacl failed with %u\n", GetLastError());
+    todo_wine
+    ok(present, "acl2 not present\n");
+    ok(acl2 != (void *)0xdeadbeef, "acl2 not set\n");
+    ok(!defaulted, "acl2 defaulted\n");
+
+    if (acl2)
+    {
+        index = 0;
+        found = FALSE;
+        while (pGetAce( acl2, index++, (void **)&ace ))
+        {
+            if (ace->Header.AceType == ACCESS_ALLOWED_ACE_TYPE && EqualSid(&ace->SidStart, psid))
+                found = TRUE;
+        }
+        ok(!found, "Access allowed ace got inherited!\n");
+    }
+
+    HeapFree(GetProcessHeap(), 0, sd2);
+
     LocalFree(psid);
 
+    CloseHandle(token3);
     CloseHandle(token2);
     CloseHandle(token);
 }
