@@ -3497,6 +3497,9 @@ release:
     context_unmap_bo_address(context, &dst_data, GL_PIXEL_UNPACK_BUFFER);
     if (!same_sub_resource)
         context_unmap_bo_address(context, &src_data, GL_PIXEL_UNPACK_BUFFER);
+
+    swapchain_frontbuffer_updated(dst_texture, dst_sub_resource_idx, dst_box);
+
     if (converted_texture)
         wined3d_texture_decref(converted_texture);
     if (context)

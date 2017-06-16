@@ -3690,6 +3690,8 @@ void swapchain_destroy_contexts(struct wined3d_swapchain *swapchain) DECLSPEC_HI
 HDC swapchain_get_backup_dc(struct wined3d_swapchain *swapchain) DECLSPEC_HIDDEN;
 void swapchain_update_draw_bindings(struct wined3d_swapchain *swapchain) DECLSPEC_HIDDEN;
 void swapchain_update_swap_interval(struct wined3d_swapchain *swapchain) DECLSPEC_HIDDEN;
+void swapchain_frontbuffer_updated(struct wined3d_texture *texture, unsigned int sub_resource_idx,
+        const struct wined3d_box *box) DECLSPEC_HIDDEN;
 
 /*****************************************************************************
  * Utility function prototypes
