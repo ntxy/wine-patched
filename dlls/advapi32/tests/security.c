@@ -6426,10 +6426,12 @@ static void test_AddMandatoryAce(void)
 
     sacl = (void *)0xdeadbeef;
     present = TRUE;
+    defaulted = TRUE;
     ret = GetSecurityDescriptorSacl(sd2, &present, &sacl, &defaulted);
     ok(ret, "GetSecurityDescriptorSacl failed with error %u\n", GetLastError());
     ok(!present, "SACL is present\n");
     ok(sacl == (void *)0xdeadbeef, "SACL is set\n");
+    todo_wine ok(!defaulted, "SACL defaulted\n");
 
     HeapFree(GetProcessHeap(), 0, sd2);
     CloseHandle(handle);
